@@ -916,9 +916,11 @@ export default function Home() {
                     <SelectContent>
                       <SelectItem value="openai/gpt-4-turbo">OpenAI GPT-4 Turbo</SelectItem>
                       <SelectItem value="openai/gpt-4o">OpenAI GPT-4o</SelectItem>
-                      <SelectItem value="anthropic/claude-3-opus">Anthropic Claude 3 Opus</SelectItem>
+                      <SelectItem value="anthropic/claude-opus-4">Anthropic Claude Opus 4</SelectItem>
+                      <SelectItem value="anthropic/claude-sonnet-4">Anthropic Claude Sonnet 4</SelectItem>
                       <SelectItem value="anthropic/claude-3-sonnet">Anthropic Claude 3 Sonnet</SelectItem>
-                      <SelectItem value="google/gemini-1.5-pro">Google Gemini 1.5 Pro</SelectItem>
+                    
+                      <SelectItem value="google/gemini-2.5-pro-preview">Google Gemini 2.5 Pro Preview</SelectItem>
                       <SelectItem value="google/gemini-2.5-flash-preview">Google Gemini 2.5 Flash Preview</SelectItem>
                       <SelectItem value="deepseek/deepseek-prover-v2">DeepSeek Prover V2</SelectItem>
                     </SelectContent>
