@@ -76,6 +76,7 @@ interactiveNovel:
 
   gameElements:
     initialSkills:
+      [技能只能是三个]
       [技能1]: [初始值]
       [技能2]: [初始值]
       [技能3]: [初始值]
