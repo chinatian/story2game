@@ -24,6 +24,7 @@ export function ScriptGenerator({ apiKey, model, onYamlGenerated }: ScriptGenera
   const [storyType, setStoryType] = useState("fantasy")
   const [viewpoint, setViewpoint] = useState("first")
   const [additionalInstructions, setAdditionalInstructions] = useState("")
+  const [streamedOutput, setStreamedOutput] = useState("")
 
   // 生成YAML的系统提示词
   const generateSystemPrompt = () => {
@@ -186,7 +187,7 @@ interactiveNovel:
     pacing: |
       在确保叙事清晰连贯的前提下，保持一种**目标明确、节奏紧凑**的叙事节奏。任务的时限性和快速接续性将推动故事迅速向最终目标迈进。
     characterDevelopment: |
-      在每一段有限的篇幅内，通过角色为达成著史目标所做的抉择、对话及内心活动，展现其智慧、勇气和对真相的执着。任务的快速推进也体现了主角为实现最终使命的决心��
+      在每一段有限的篇幅内，通过角色为达成著史目标所做的抉择、对话及内心活动，展现其智慧、勇气和对真相的执着。任务的快速推进也体现了主角为实现最终使命的决心。
     sceneDescription: |
       场景描写需服务于当前任务目标，简洁凝练，突出关键元素。
     choiceFormat: |
@@ -258,6 +259,7 @@ interactiveNovel:
     }
 
     setIsGenerating(true)
+    setStreamedOutput("")
 
     try {
       const response = await fetch("/api/generate-yaml", {
@@ -277,11 +279,31 @@ interactiveNovel:
         throw new Error(`请求失败: ${response.status}`)
       }
 
-      const data = await response.json()
+      if (!response.body) {
+        throw new Error("Response body is null")
+      }
 
-      // 提取YAML内容
-      const yamlMatch = data.content.match(/```yaml\n([\s\S]*?)```/) ||
-        data.content.match(/```\n([\s\S]*?)```/) || { 1: data.content }
+      // Handle streaming response
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulatedContent = ""
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+
+        accumulatedContent += chunk
+        setStreamedOutput(accumulatedContent)
+        // const lines = chunk.split('\n')
+        
+        
+      }
+
+      // Extract YAML content from accumulated output
+      const yamlMatch = accumulatedContent.match(/```yaml\n([\s\S]*?)```/) ||
+        accumulatedContent.match(/```\n([\s\S]*?)```/) || { 1: accumulatedContent }
 
       const yamlContent = yamlMatch[1]
       setGeneratedYaml(yamlContent)
@@ -409,7 +431,9 @@ interactiveNovel:
         </CardHeader>
         <CardContent className="flex-1">
           <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-            <pre className="text-sm font-mono whitespace-pre-wrap">{generatedYaml}</pre>
+            <pre className="text-sm font-mono whitespace-pre-wrap">
+              {isGenerating ? streamedOutput : generatedYaml}
+            </pre>
           </ScrollArea>
         </CardContent>
         <CardFooter className="flex justify-between">

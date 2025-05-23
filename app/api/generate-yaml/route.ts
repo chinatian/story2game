@@ -31,65 +31,81 @@ export async function POST(req: NextRequest) {
       model: model || "openai/gpt-4-turbo",
       max_tokens: 4000,
       temperature: 0.7,
-      stream: false,
+      stream: true, // 启用流式响应
     }
 
-    try {
-      // 发送请求到OpenRouter API
-      const openRouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://v0.dev",
-          "X-Title": "AI Story Chat App",
-        },
-        body: JSON.stringify(openRouterPayload),
-      })
-
-      console.log(`OpenRouter API响应状态: ${openRouterResponse.status}`)
-
-      if (!openRouterResponse.ok) {
-        const errorText = await openRouterResponse.text()
-        console.error(`OpenRouter API错误: ${openRouterResponse.status}`, errorText)
-
-        let errorData = {}
+    // 创建响应流
+    const stream = new ReadableStream({
+      async start(controller) {
         try {
-          errorData = JSON.parse(errorText)
-        } catch (e) {
-          console.error("解析错误响应失败:", e)
+          const openRouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+              "HTTP-Referer": "https://v0.dev",
+              "X-Title": "AI Story Chat App",
+            },
+            body: JSON.stringify(openRouterPayload),
+          })
+
+          if (!openRouterResponse.ok) {
+            const errorText = await openRouterResponse.text()
+            console.error(`OpenRouter API错误: ${openRouterResponse.status}`, errorText)
+            controller.error(new Error(`调用AI模型失败 (${openRouterResponse.status})`))
+            return
+          }
+
+          // 获取响应的读取流
+          const reader = openRouterResponse.body?.getReader()
+          if (!reader) {
+            controller.error(new Error("无法获取响应流"))
+            return
+          }
+
+          // 解码器
+          const decoder = new TextDecoder()
+
+          // 读取流数据
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            // 解码并处理数据
+            const chunk = decoder.decode(value)
+            const lines = chunk
+              .split("\n")
+              .filter(line => line.trim() !== "" && line.trim() !== "data: [DONE]")
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  if (data.choices?.[0]?.delta?.content) {
+                    // 发送内容到客户端
+                    controller.enqueue(new TextEncoder().encode(data.choices[0].delta.content))
+                  }
+                } catch (e) {
+                  console.error("解析流数据失败:", e)
+                }
+              }
+            }
+          }
+          controller.close()
+        } catch (error) {
+          console.error("处理流式响应时出错:", error)
+          controller.error(error)
         }
-
-        return NextResponse.json(
-          {
-            error: `调用AI模型失败 (${openRouterResponse.status})`,
-            details: errorData,
-          },
-          { status: openRouterResponse.status },
-        )
       }
+    })
 
-      const data = await openRouterResponse.json()
-
-      if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error("OpenRouter返回的数据格式不正确:", data)
-        return NextResponse.json({ error: "AI服务返回的数据格式不正确" }, { status: 500 })
-      }
-
-      // 返回AI的回复
-      return NextResponse.json({
-        content: data.choices[0].message.content,
-      })
-    } catch (fetchError) {
-      console.error("OpenRouter API请求错误:", fetchError)
-      return NextResponse.json(
-        {
-          error: "连接到AI服务时出错",
-          details: fetchError instanceof Error ? fetchError.message : String(fetchError),
-        },
-        { status: 500 },
-      )
-    }
+    // 返回流式响应
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+      },
+    })
   } catch (error) {
     console.error("API路由处理错误:", error)
     return NextResponse.json(
