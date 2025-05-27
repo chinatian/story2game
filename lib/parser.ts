@@ -27,22 +27,22 @@ export function parseGameState(content: string) {
   }
 
   // 解析当前任务
-  const taskMatch = gameStateContent.match(/<currentActiveTask>([\s\S]*?)<\/currentActiveTask>/)
+  const taskMatch = gameStateContent.match(/<currentActiveTask[^>]*id="([^"]*)"[^>]*description="([^"]*)"[^>]*status="([^"]*)"[^>]*roundProgress="\((\d+)\/(\d+)\)"[^>]*\/>/)
   const task = { description: "", progress: "" }
 
   if (taskMatch) {
-    const taskContent = taskMatch[1]
-    const taskDescMatch = taskContent.match(/description="([^"]*)"/)
-    const taskProgressMatch = taskContent.match(/roundProgress="$$(\d+)\/(\d+)$$"/)
-
-    if (taskDescMatch) {
-      task.description = taskDescMatch[1]
-    }
-
-    if (taskProgressMatch) {
-      task.progress = `${taskProgressMatch[1]}/${taskProgressMatch[2]}`
+    task.description = taskMatch[2]
+    task.progress = `${taskMatch[4]}/${taskMatch[5]}`
+  }else{
+    // Try alternate task format with XML element
+    const altTaskMatch = gameStateContent.match(/<currentActiveTask>\s*<task id="([^"]*)" description="([^"]*)" status="([^"]*)" roundProgress="\((\d+)\/(\d+)\)"\/>\s*<\/currentActiveTask>/)
+    if (altTaskMatch) {
+      task.description = altTaskMatch[2]
+      task.progress = `${altTaskMatch[4]}/${altTaskMatch[5]}`
     }
   }
+
+
 
   // 解析金手指
   const goldenFingersMatch = gameStateContent.match(/<currentGoldenFingers>([\s\S]*?)<\/currentGoldenFingers>/)

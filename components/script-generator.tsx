@@ -17,15 +17,6 @@ interface ScriptGeneratorProps {
 }
 
 export function ScriptGenerator({ apiKey, model, onYamlGenerated }: ScriptGeneratorProps) {
-  const [storyInput, setStoryInput] = useState("")
-  const [generatedYaml, setGeneratedYaml] = useState("")
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [storyTitle, setStoryTitle] = useState("")
-  const [storyType, setStoryType] = useState("fantasy")
-  const [viewpoint, setViewpoint] = useState("first")
-  const [additionalInstructions, setAdditionalInstructions] = useState("")
-  const [streamedOutput, setStreamedOutput] = useState("")
-
   // 生成YAML的系统提示词
   const generateSystemPrompt = () => {
     return `你是一个专业的互动小说YAML格式生成器。请根据用户提供的故事内容，生成符合以下格式的YAML数据，用于AI互动小说系统。
@@ -202,6 +193,16 @@ interactiveNovel:
 请根据用户提供的故事内容，生成完整的YAML数据。如果用户提供了额外的要求（如特定的故事类型、视角、主题等），请优先考虑这些要求。`
   }
 
+  const [storyInput, setStoryInput] = useState("")
+  const [generatedYaml, setGeneratedYaml] = useState("")
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [storyTitle, setStoryTitle] = useState("")
+  const [storyType, setStoryType] = useState("fantasy")
+  const [viewpoint, setViewpoint] = useState("first")
+  const [additionalInstructions, setAdditionalInstructions] = useState("")
+  const [streamedOutput, setStreamedOutput] = useState("")
+  const [systemPrompt, setSystemPrompt] = useState(generateSystemPrompt())
+
   // 生成用户提示词
   const generateUserPrompt = () => {
     let prompt = `请根据以下故事内容，生成符合互动小说格式的YAML数据：\n\n${storyInput}\n\n`
@@ -270,7 +271,7 @@ interactiveNovel:
         body: JSON.stringify({
           apiKey,
           model,
-          systemPrompt: generateSystemPrompt(),
+          systemPrompt: systemPrompt,
           userPrompt: generateUserPrompt(),
         }),
       })
@@ -348,6 +349,16 @@ interactiveNovel:
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">系统提示词</label>
+            <Textarea
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder="编辑系统提示词..."
+              className="min-h-[200px] font-mono text-sm"
+            />
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium">故事标题 (可选)</label>
             <Input value={storyTitle} onChange={(e) => setStoryTitle(e.target.value)} placeholder="输入故事标题" />
