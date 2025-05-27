@@ -594,6 +594,7 @@ export default function Home() {
         imageUrl,
         options: options
       });
+      
       setIsImmersiveMode(true);
     } catch (error) {
       toast({

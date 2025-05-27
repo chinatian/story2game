@@ -16,24 +16,7 @@ export async function POST(request: NextRequest) {
     const systemPrompt = `你是一个专业的故事分析助手。请分析以下故事内容，并提供两个关键信息：
 1. 一段适合AI绘图的画面描述
 2. 将故事内容按自然段落分割，并标注每段是旁白还是角色对话，如果是对话需指出说话者
-3. 画面描述：画风从下面随机选择一个合适的并给出
-- Akira Toriyama style 
-- Naoko Takeuchi style
-- Katsuhiro Otomo style
-- Yoshiyuki Sadamoto style
-- Masashi Kishimoto style
-- Yoshihiro Togashi style
-- CLAMP style
-- Yoshitaka Amano style
-- Range Murata style
-- redjuice style
-- huke style
-- lack style
-- Mai Yoneyama style
-- Wlop Ghostblade style
-- Ask style
-- Ririn style
-- DSmile style
+3. 画面描述：整个画面的绘画风格要给出具体的建议，可以参考某个动漫艺术家的风格，画面要有冲击力，有故事感
 
 请以JSON格式返回，格式如下：
 {
