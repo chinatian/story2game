@@ -2,42 +2,14 @@ import { GenerateImageResponse, ImageGenerationOptions, RequestInfo } from './ty
 import { createVolcRequest } from './volcEngine';
 // Use native fetch API since we're in a browser environment
 
-export const generateImage = async ({
+export async function generateImage({
     prompt,
-    model,
     width = 768,
     height = 1024,
     scale = 2.5,
     seed = -1,
     use_pre_llm = false
-}: {
-    prompt: string;
-    model?: string;
-    width?: number;
-    height?: number;
-    scale?: number;
-    seed?: number;
-    use_pre_llm?: boolean;
-}) => {
-    // 根据不同模型选择不同的API端点和参数
-    const modelConfig = {
-        'stability/sdxl': {
-            endpoint: 'stability-ai',
-            params: { ... }
-        },
-        'nai/nai-diffusion': {
-            endpoint: 'novelai',
-            params: { ... }
-        },
-        // 添加其他模型的配置...
-    };
-
-    const selectedModel = model || 'stability/sdxl';
-    const config = modelConfig[selectedModel];
-
-    // 根据选择的模型调用相应的API
-    // 实现具体的API调用逻辑...
-
+}: ImageGenerationOptions): Promise<GenerateImageResponse> {
     const requestInfo = createVolcRequest(
         "AKLTMTdlZmJhZGYzNmY1NGMxZjg3OWZmMTRmMDA4OThmOTU",
         "WWpZeE5tRTVNekpsTlRFNE5ERTJPVGd5T0dGaE9UTTBNVEJqWkRBeU1UWQ==",
@@ -87,4 +59,4 @@ export const generateImage = async ({
             message: error instanceof Error ? error.message : 'Unknown error occurred',
         };
     }
-}; 
+} 
