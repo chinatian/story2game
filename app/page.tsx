@@ -97,6 +97,8 @@ export default function Home() {
   const immersiveContentRef = useRef<HTMLDivElement>(null)
   const lastMessageRef = useRef<string | null>(null)
   const [customAction, setCustomAction] = useState("")
+  const [volcAccessKeyId, setVolcAccessKeyId] = useState("")
+  const [volcSecretAccessKey, setVolcSecretAccessKey] = useState("")
 
   // 解析YAML中的故事信息
   const parseStoryInfo = (yamlText: string) => {
@@ -457,28 +459,29 @@ export default function Home() {
   }
 
   const handleSkillIncrease = (skillName: string) => {
-    // 增加技能值
-    const newSkills = { ...gameState?.skills || storyInfo.initialSkills }
-    const oldValue = newSkills[skillName] || 0
-    newSkills[skillName] = oldValue + 5
-
+    setGameState((prev: any) => ({ 
+      ...prev, 
+      skills: {
+        ...(prev?.skills || {}),
+        [skillName]: (prev?.skills?.[skillName] || 0) + 5
+      }
+    }));
     // 创建技能变化记录
     const skillChange: SkillChange = {
       name: skillName,
-      oldValue: oldValue,
-      newValue: oldValue + 5,
+      oldValue: prev?.skills?.[skillName] || 0,
+      newValue: prev?.skills?.[skillName] || 0 + 5,
       change: 5
     }
 
     // 更新状态
-    setGameState(prev => ({ ...prev, skills: newSkills }))
     setSkillChanges([skillChange])
     setShowSkillChanges(true)
 
     // 添加系统消息到聊天记录
     // const systemMessage = {
     //   role: 'system',
-    //   content: `技能 ${skillName} 增加了5点，从 ${oldValue} 提升到 ${oldValue + 5}。`
+    //   content: `技能 ${skillName} 增加了5点，从 ${prev?.skills?.[skillName] || 0} 提升到 ${prev?.skills?.[skillName] || 0 + 5}。`
     // }
 
     // Update the last assistant message's skill values if it exists
@@ -489,12 +492,12 @@ export default function Home() {
       for (let i = newMessages.length - 1; i >= 0; i--) {
         if (newMessages[i].role === 'assistant') {
           console.log("regex", `${skillName}>\\d+</`)
-          console.log("oldValue", `${oldValue + 5}`)
+          console.log("oldValue", `${prev?.skills?.[skillName] || 0 + 5}`)
           // Update the skill value in the message content
           const content = newMessages[i].content
           const updatedContent = content.replace(
             new RegExp(`${skillName}>\\d+</`),
-            `${skillName}>${oldValue + 5}</`
+            `${skillName}>${prev?.skills?.[skillName] || 0 + 5}</`
           )
           console.log("updatedContent", updatedContent)
           newMessages[i].content = updatedContent
@@ -518,16 +521,12 @@ export default function Home() {
         width: 768,
         height: 1024,
         scale: 2.5,
-        use_pre_llm: false
+        use_pre_llm: false,
+        volcAccessKeyId,
+        volcSecretAccessKey
       });
 
       if (result.success && result.image_urls) {
-        // 处理生成的图片URL
-        // toast({
-        //   title: "图片生成成功",
-        //   description: "已成功生成图片",
-        //   variant: "default",
-        // });
         console.log("result", result)
         return result.image_urls[0]
       } else {
@@ -544,13 +543,13 @@ export default function Home() {
   }
 
   const handleImmersiveMode = async () => {
-    // 如果已经在加载中，直接返回
+    // If already loading, return
     if (isLoading) return;
     
     console.log("Executing handleImmersiveMode");
     
     if (!messages.length) {
-      // 直接进入沉浸模式，显示开始按钮
+      // Direct entry to immersive mode, show start button
       setIsImmersiveMode(true);
       setSceneDescriptions({
         imagePrompt: "A mysterious fantasy world waiting to be explored",
@@ -564,7 +563,7 @@ export default function Home() {
     }
 
     setIsLoading(true);
-    setCurrentSegmentIndex(0); // 重置段落索引
+    setCurrentSegmentIndex(0); // Reset segment index
     
     try {
       const storyContent = messages
@@ -573,15 +572,22 @@ export default function Home() {
         .map(m => formatMessage(m.content))
         .join("\n");
 
+      // Add previous imagePrompt to the story content if it exists
+      const contentWithPrompt = sceneDescriptions?.imagePrompt 
+        ? `Previous Image Prompt: ${sceneDescriptions.imagePrompt}\n\nStory Content: ${storyContent}`
+        : storyContent;
+
       const response = await fetch("/api/analyze-story", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          content: storyContent,
+          content: contentWithPrompt,
           apiKey,
           model,
+          volcAccessKeyId,
+          volcSecretAccessKey,
         }),
       });
 
@@ -591,11 +597,11 @@ export default function Home() {
 
       const data = await response.json();
       const imageUrl = await handleGenerateImage(data.imagePrompt);
-      setSceneDescriptions(prevState => ({
+      setSceneDescriptions({
         ...data,
-        imageUrl: imageUrl || prevState?.imageUrl, // Keep previous imageUrl if new one is null
-        options: options
-      }));
+        imageUrl: imageUrl || undefined,
+        options: options || []
+      });
       
       setIsImmersiveMode(true);
     } catch (error) {
@@ -604,7 +610,6 @@ export default function Home() {
         description: "无法生成沉浸模式内容",
         variant: "destructive",
       });
-      // 发生错误时退出沉浸模式
       setIsImmersiveMode(false);
     } finally {
       setIsLoading(false);
@@ -823,7 +828,7 @@ export default function Home() {
                         onClick={() => {
                           setCurrentSegmentIndex(currentSegmentIndex + 1)
                         }}
-                        className="space-y-4 bg-black bg-opacity-30 p-6 rounded-lg backdrop-blur-sm">
+                        className="space-y-4 bg-black bg-opacity-30 p-6 rounded-lg ">
                           {/* 显示当前任务 */}
                           {gameState?.task  && (
                             <div className="mb-4 p-4 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20">
@@ -851,11 +856,11 @@ export default function Home() {
                           ))}
                           
                           {/* 选项或继续提示 */}
-                          {currentSegmentIndex-1 >= sceneDescriptions.segments.length ? (
-                            sceneDescriptions.options && (
+                          {currentSegmentIndex-1 >= (sceneDescriptions?.segments?.length || 0) ? (
+                            sceneDescriptions?.options && (
                               <div className="mt-6 space-y-2">
-                                <h3 className="text-white font-bold mb-3">选择你的行动：</h3>
-                                {sceneDescriptions.options.map((option) => (
+                               
+                                {sceneDescriptions?.options.map((option) => (
                                   <Button
                                     key={option.id}
                                     variant="outline"
@@ -1099,6 +1104,47 @@ export default function Home() {
                   </p>
                 </div>
 
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="font-medium">火山引擎生图API设置</h3>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Access Key ID</label>
+                    <Input
+                      type="password"
+                      value={volcAccessKeyId}
+                      onChange={(e) => setVolcAccessKeyId(e.target.value)}
+                      placeholder="输入火山引擎 Access Key ID"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Secret Access Key</label>
+                    <Input
+                      type="password"
+                      value={volcSecretAccessKey}
+                      onChange={(e) => setVolcSecretAccessKey(e.target.value)}
+                      placeholder="输入火山引擎 Secret Access Key"
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-gray-500">
+                    在{" "}
+                    <a
+                      href="https://www.volcengine.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      火山引擎控制台
+                    </a>{" "}
+                    获取 API 密钥
+                  </p>
+                </div>
+
+                <Separator />
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">选择模型</label>
                   <Select value={model} onValueChange={setModel}>
@@ -1108,13 +1154,12 @@ export default function Home() {
                     <SelectContent>
                       <SelectItem value="openai/gpt-4-turbo">OpenAI GPT-4 Turbo</SelectItem>
                       <SelectItem value="openai/gpt-4o">OpenAI GPT-4o</SelectItem>
-                      <SelectItem value="anthropic/claude-opus-4">Anthropic Claude Opus 4</SelectItem>
-                      <SelectItem value="anthropic/claude-sonnet-4">Anthropic Claude Sonnet 4</SelectItem>
+                     
                       <SelectItem value="anthropic/claude-3-sonnet">Anthropic Claude 3 Sonnet</SelectItem>
                       <SelectItem value="anthropic/claude-3.7-sonnet">Anthropic Claude 3.7 Sonnet</SelectItem>
                       <SelectItem value="google/gemini-2.5-pro-preview">Google Gemini 2.5 Pro Preview</SelectItem>
                       <SelectItem value="google/gemini-2.5-flash-preview">Google Gemini 2.5 Flash Preview</SelectItem>
-                      <SelectItem value="deepseek/deepseek-prover-v2">DeepSeek Prover V2</SelectItem>
+                      <SelectItem value="deepseek/deepseek-chat-v3-0324">DeepSeek Chat V3</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
