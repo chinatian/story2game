@@ -33,6 +33,7 @@ import { ScriptGenerator } from "@/components/script-generator"
 import { SkillsDisplay } from "@/components/skills-display"
 import { generateImage } from '@/lib/imageGenerator';
 import { defaultSystemPrompt } from "@/lib/defaultSystemPrompt"
+import { useSearchParams } from 'next/navigation'
 
 // 定义技能变化类型
 type SkillChange = {
@@ -45,7 +46,11 @@ type SkillChange = {
 export default function Home() {
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
   const [input, setInput] = useState("")
-  const [apiKey, setApiKey] = useState("")
+  const searchParams = useSearchParams()
+  const [apiKey, setApiKey] = useState(() => {
+    const urlApiKey = searchParams.get('apiKey')
+    return urlApiKey || ""
+  })
   const [model, setModel] = useState("google/gemini-2.5-flash-preview")
   const [systemPrompt, setSystemPrompt] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -82,7 +87,7 @@ export default function Home() {
   })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const previousTaskRef = useRef<string | null>(null)
-  const [isImmersiveMode, setIsImmersiveMode] = useState(false)
+  const [isImmersiveMode, setIsImmersiveMode] = useState(true)
   const [sceneDescriptions, setSceneDescriptions] = useState<{
     imagePrompt: string;
     imageUrl?: string;
@@ -97,8 +102,14 @@ export default function Home() {
   const immersiveContentRef = useRef<HTMLDivElement>(null)
   const lastMessageRef = useRef<string | null>(null)
   const [customAction, setCustomAction] = useState("")
-  const [volcAccessKeyId, setVolcAccessKeyId] = useState("")
-  const [volcSecretAccessKey, setVolcSecretAccessKey] = useState("")
+  const [volcAccessKeyId, setVolcAccessKeyId] = useState(() => {
+    const urlVolcId = searchParams.get('volcId')
+    return urlVolcId || ""
+  })
+  const [volcSecretAccessKey, setVolcSecretAccessKey] = useState(() => {
+    const urlVolcKey = searchParams.get('volcKey')
+    return urlVolcKey || ""
+  })
 
   // 解析YAML中的故事信息
   const parseStoryInfo = (yamlText: string) => {
@@ -149,18 +160,28 @@ export default function Home() {
   }
 
   useEffect(() => {
-    // 设置默认系统提示词
+    // Set default system prompt
     setSystemPrompt(defaultSystemPrompt)
 
-    // 解析故事信息
+    // Parse story info
     const info = parseStoryInfo(defaultSystemPrompt)
     setStoryInfo(info)
 
-    // 设置初始技能值作为上一次的技能值
+    // Set initial skills as previous skills
     setPreviousSkills(info.initialSkills)
 
-    // 自动显示介绍
+    // Show intro
     setShowIntro(true)
+
+    // Initialize immersive mode content
+    setSceneDescriptions({
+      imagePrompt: "A mysterious fantasy world waiting to be explored",
+      segments: [{
+        text: "准备开始一段奇妙的冒险...",
+        type: "narration"
+      }],
+      options: []
+    })
   }, [])
 
   useEffect(() => {
@@ -640,6 +661,17 @@ export default function Home() {
     setInput(customAction) // 将自定义行动赋值给input
     setCustomAction("") // 清空自定义行动输入框
   }
+
+  // 添加一个 useEffect 来处理 URL 参数变化
+  useEffect(() => {
+    const urlApiKey = searchParams.get('apiKey')
+    const urlVolcId = searchParams.get('volcId')
+    const urlVolcKey = searchParams.get('volcKey')
+
+    if (urlApiKey) setApiKey(urlApiKey)
+    if (urlVolcId) setVolcAccessKeyId(urlVolcId)
+    if (urlVolcKey) setVolcSecretAccessKey(urlVolcKey)
+  }, [searchParams])
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
