@@ -2,29 +2,32 @@ import { GenerateImageResponse, ImageGenerationOptions, RequestInfo } from './ty
 import { createVolcRequest } from './volcEngine';
 // Use native fetch API since we're in a browser environment
 
-export async function generateImage({
-    prompt,
-    width = 768,
-    height = 1024,
-    scale = 2.5,
-    seed = -1,
-    use_pre_llm = false
-}: ImageGenerationOptions): Promise<GenerateImageResponse> {
+export interface ImageGenerationOptions {
+    prompt: string;
+    width: number;
+    height: number;
+    scale: number;
+    use_pre_llm: boolean;
+    volcAccessKeyId: string;
+    volcSecretAccessKey: string;
+}
+
+export async function generateImage(options: ImageGenerationOptions): Promise<GenerateImageResponse> {
     const requestInfo = createVolcRequest(
-        "AKLTMTdlZmJhZGYzNmY1NGMxZjg3OWZmMTRmMDA4OThmOTU",
-        "WWpZeE5tRTVNekpsTlRFNE5ERTJPVGd5T0dGaE9UTTBNVEJqWkRBeU1UWQ==",
+        options.volcAccessKeyId,
+        options.volcSecretAccessKey,
         "visual.volcengineapi.com",
         "CVProcess",
         "2022-08-31",
         {
             req_key: "high_aes_general_v30l_zt2i",
             binary_data_base64: [],
-            seed,
-            scale,
-            use_pre_llm,
-            width,
-            height,
-            prompt,
+            seed: -1,
+            scale: options.scale,
+            use_pre_llm: options.use_pre_llm,
+            width: options.width,
+            height: options.height,
+            prompt: options.prompt,
             return_url: true
         }
     );

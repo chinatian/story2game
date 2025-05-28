@@ -459,20 +459,39 @@ export default function Home() {
   }
 
   const handleSkillIncrease = (skillName: string) => {
-    setGameState((prev: any) => ({ 
-      ...prev, 
+    setGameState((prevState: any) => ({ 
+      ...prevState, 
       skills: {
-        ...(prev?.skills || {}),
-        [skillName]: (prev?.skills?.[skillName] || 0) + 5
+        ...(prevState?.skills || {}),
+        [skillName]: (prevState?.skills?.[skillName] || 0) + 5
       }
     }));
-    // 创建技能变化记录
+
+    // Create skill change record using the current gameState
+    const currentValue = gameState?.skills?.[skillName] || 0;
     const skillChange: SkillChange = {
       name: skillName,
-      oldValue: prev?.skills?.[skillName] || 0,
-      newValue: prev?.skills?.[skillName] || 0 + 5,
+      oldValue: currentValue,
+      newValue: currentValue + 5,
       change: 5
     }
+
+    // Update messages with proper typing
+    setMessages(prevMessages => {
+      const newMessages = [...prevMessages];
+      for (let i = newMessages.length - 1; i >= 0; i--) {
+        if (newMessages[i].role === 'assistant') {
+          const content = newMessages[i].content;
+          const updatedContent = content.replace(
+            new RegExp(`${skillName}>\\d+</`),
+            `${skillName}>${currentValue + 5}</`
+          );
+          newMessages[i].content = updatedContent;
+          break;
+        }
+      }
+      return newMessages;
+    });
 
     // 更新状态
     setSkillChanges([skillChange])
@@ -484,30 +503,6 @@ export default function Home() {
     //   content: `技能 ${skillName} 增加了5点，从 ${prev?.skills?.[skillName] || 0} 提升到 ${prev?.skills?.[skillName] || 0 + 5}。`
     // }
 
-    // Update the last assistant message's skill values if it exists
-    setMessages(prev => {
-      const newMessages = [...prev]
-      console.log("newMessages", newMessages)
-      // Find last assistant message
-      for (let i = newMessages.length - 1; i >= 0; i--) {
-        if (newMessages[i].role === 'assistant') {
-          console.log("regex", `${skillName}>\\d+</`)
-          console.log("oldValue", `${prev?.skills?.[skillName] || 0 + 5}`)
-          // Update the skill value in the message content
-          const content = newMessages[i].content
-          const updatedContent = content.replace(
-            new RegExp(`${skillName}>\\d+</`),
-            `${skillName}>${prev?.skills?.[skillName] || 0 + 5}</`
-          )
-          console.log("updatedContent", updatedContent)
-          newMessages[i].content = updatedContent
-          break
-        }
-      }
-      return [...newMessages]
-    })
-    // setMessages(prev => [...prev, systemMessage])
-
     // 3秒后隐藏技能变化提示
     setTimeout(() => {
       setShowSkillChanges(false)
@@ -516,19 +511,21 @@ export default function Home() {
 
   const handleGenerateImage = async (prompt: string) => {
     try {
-      const result = await generateImage({
-        prompt: prompt,
+      // Define proper type for image generation options
+      const options = {
+        prompt,
         width: 768,
         height: 1024,
         scale: 2.5,
         use_pre_llm: false,
         volcAccessKeyId,
         volcSecretAccessKey
-      });
+      };
+
+      const result = await generateImage(options);
 
       if (result.success && result.image_urls) {
-        console.log("result", result)
-        return result.image_urls[0]
+        return result.image_urls[0];
       } else {
         throw new Error(result.message || "图片生成失败");
       }
@@ -540,7 +537,7 @@ export default function Home() {
       });
       return null;
     }
-  }
+  };
 
   const handleImmersiveMode = async () => {
     // If already loading, return
