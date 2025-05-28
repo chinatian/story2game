@@ -96,6 +96,7 @@ export default function Home() {
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0)
   const immersiveContentRef = useRef<HTMLDivElement>(null)
   const lastMessageRef = useRef<string | null>(null)
+  const [customAction, setCustomAction] = useState("")
 
   // 解析YAML中的故事信息
   const parseStoryInfo = (yamlText: string) => {
@@ -522,11 +523,11 @@ export default function Home() {
 
       if (result.success && result.image_urls) {
         // 处理生成的图片URL
-        toast({
-          title: "图片生成成功",
-          description: "已成功生成图片",
-          variant: "default",
-        });
+        // toast({
+        //   title: "图片生成成功",
+        //   description: "已成功生成图片",
+        //   variant: "default",
+        // });
         console.log("result", result)
         return result.image_urls[0]
       } else {
@@ -538,6 +539,7 @@ export default function Home() {
         description: error instanceof Error ? error.message : "未知错误",
         variant: "destructive",
       });
+      return null;
     }
   }
 
@@ -589,11 +591,11 @@ export default function Home() {
 
       const data = await response.json();
       const imageUrl = await handleGenerateImage(data.imagePrompt);
-      setSceneDescriptions({
+      setSceneDescriptions(prevState => ({
         ...data,
-        imageUrl,
+        imageUrl: imageUrl || prevState?.imageUrl, // Keep previous imageUrl if new one is null
         options: options
-      });
+      }));
       
       setIsImmersiveMode(true);
     } catch (error) {
@@ -629,6 +631,13 @@ export default function Home() {
       }
     }
   }, [messages, isImmersiveMode, isLoading]); // 添加 isLoading 作为依赖项
+
+  // 修改表单提交处理函数
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setInput(customAction) // 将自定义行动赋值给input
+    setCustomAction("") // 清空自定义行动输入框
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
@@ -670,25 +679,29 @@ export default function Home() {
 
         {/* 在JSX中更新StoryIntro组件的使用 */}
         {showIntro && (
-          <StoryIntro
-            title={storyInfo.title}
-            worldBackground={storyInfo.worldBackground}
-            introduction={storyInfo.introduction}
-            protagonist={storyInfo.protagonist}
-            onCloseModal={handleIntroClose}
-            onStartAdventure={handleStartAdventure}
-          />
+          <div className="fixed inset-0 flex items-center justify-center z-[100]">
+            <StoryIntro
+              title={storyInfo.title}
+              worldBackground={storyInfo.worldBackground}
+              introduction={storyInfo.introduction}
+              protagonist={storyInfo.protagonist}
+              onCloseModal={handleIntroClose}
+              onStartAdventure={handleStartAdventure}
+            />
+          </div>
         )}
 
         {showTaskInfo && (
-          <TaskInfo
-            task={gameState?.task ? gameState.task : null}
-            skills={
-              gameState?.skills && Object.keys(gameState.skills).length > 0 ? gameState.skills : storyInfo.initialSkills
-            }
-            goldenFingers={gameState?.goldenFingers || []}
-            onClose={() => setShowTaskInfo(false)}
-          />
+          <div className="fixed inset-0 flex items-center justify-center z-[100]">
+            <TaskInfo
+              task={gameState?.task ? gameState.task : null}
+              skills={
+                gameState?.skills && Object.keys(gameState.skills).length > 0 ? gameState.skills : storyInfo.initialSkills
+              }
+              goldenFingers={gameState?.goldenFingers || []}
+              onClose={() => setShowTaskInfo(false)}
+            />
+          </div>
         )}
 
         <Tabs defaultValue="chat" className="flex-1 flex flex-col">
@@ -812,12 +825,9 @@ export default function Home() {
                         }}
                         className="space-y-4 bg-black bg-opacity-30 p-6 rounded-lg backdrop-blur-sm">
                           {/* 显示当前任务 */}
-                          {gameState?.task && (
+                          {gameState?.task  && (
                             <div className="mb-4 p-4 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20">
-                              <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-                                <ListTodo className="h-5 w-5" />
-                                当前任务 {gameState.task.progress}
-                              </h3>
+                             
                               <p className="text-gray-200">{gameState.task.description}</p>
                           
                             </div>
@@ -860,6 +870,22 @@ export default function Home() {
                                     {option.id}. {option.text}
                                   </Button>
                                 ))}
+                                {/* 添加自定义选项输入区域 */}
+                                <div className="">
+                                  
+                                  <form onSubmit={handleCustomSubmit} className="flex gap-2">
+                                    <Input
+                                      value={customAction}
+                                      onChange={(e) => setCustomAction(e.target.value)}
+                                      placeholder="描述你想要执行的行动..."
+                                      disabled={isLoading}
+                                      className="flex-1"
+                                    />
+                                    <Button type="submit" disabled={isLoading}>
+                                      确认
+                                    </Button>
+                                  </form>
+                                </div>
                               </div>
                             )
                           ) : (
@@ -1017,22 +1043,7 @@ export default function Home() {
                           </Button>
                         ))}
                         
-                        {/* 添加自定义选项输入区域 */}
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">或者输入自定义行动：</h4>
-                          <form onSubmit={handleSubmit} className="flex gap-2">
-                            <Input
-                              value={input}
-                              onChange={(e) => setInput(e.target.value)}
-                              placeholder="描述你想要执行的行动..."
-                              disabled={isLoading}
-                              className="flex-1"
-                            />
-                            <Button type="submit" disabled={isLoading}>
-                              确认
-                            </Button>
-                          </form>
-                        </div>
+                        
                       </div>
                     )}
                   </ScrollArea>
