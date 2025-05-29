@@ -462,7 +462,7 @@ function HomeContent() {
     // 处理特殊格式
     formattedContent = formattedContent
       .replace(/"([^"]*)"/g, '<span class="">"$1"</span>') // 对话
-      .replace(/\*\*([^*]*)\*\*/g, '<span class="italic ">$1</span>') // 思想
+      .replace(/\*\*([^*]*)\*\*/g, '<span class=" ">$1</span>') // 思想
       .replace(/~~([^~]*)~~/g, '<span class="">$1</span>') // 音效/氛围
     
     // Split by newlines and filter out empty lines
@@ -957,7 +957,7 @@ function HomeContent() {
                               key={index} 
                               className={`${
                                 segment.type === 'narration' 
-                                  ? 'text-gray-200 italic' 
+                                  ? 'text-gray-200 ' 
                                   : 'text-white'
                               } animate-fadeIn`}
                             >
