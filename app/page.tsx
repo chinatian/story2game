@@ -640,7 +640,7 @@ function HomeContent() {
     }
 
     setCurrentSegmentIndex(0);
-    
+    setIsGeneratingImage(true)
     try {
       const storyContent = messages
         .filter(m => m.role === "assistant")
