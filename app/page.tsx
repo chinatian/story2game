@@ -380,6 +380,16 @@ function HomeContent() {
       setStreamingContent("")
       console.log("isImmersiveMode", isImmersiveMode)
       console.log("messages", messages)
+
+      if (isImmersiveMode) {
+        let _sceneDescriptions = formatMessageForImmersiveMode(completeResponse)
+        if (sceneDescriptions.imagePrompt) {
+          _sceneDescriptions.imagePrompt = sceneDescriptions.imagePrompt
+        }
+        setSceneDescriptions(_sceneDescriptions);
+        
+        // setSceneDescriptions()
+      }
       // // 如果是沉浸模式，调用handleImmersiveMode
       // if (isImmersiveMode) {
       //   setTimeout(() => {
@@ -441,6 +451,36 @@ function HomeContent() {
       .replace(/\n/g, "<br />") // 将换行符转换为HTML换行标签
 
     return formattedContent.trim()
+  }
+
+  const formatMessageForImmersiveMode = (content: string) => {
+    let formattedContent = content
+      .replace(/<gameState>[\s\S]*?<\/gameState>/g, "")
+      .replace(/<options>[\s\S]*?<\/options>/g, "")
+      .replace(/#场景\s*(.*?)(?=\n|$)/g, "")
+
+    // 处理特殊格式
+    formattedContent = formattedContent
+      .replace(/"([^"]*)"/g, '<span class="">"$1"</span>') // 对话
+      .replace(/\*\*([^*]*)\*\*/g, '<span class="italic ">$1</span>') // 思想
+      .replace(/~~([^~]*)~~/g, '<span class="">$1</span>') // 音效/氛围
+    
+    // Split by newlines and filter out empty lines
+    const segments = formattedContent.split('\n').filter(line => line.trim().length > 0)
+    // 按照 sceneDescriptions 的格式，将 segments 转换为对象
+    const segmentsObject = segments.map((segment, index) => ({
+      text: segment,
+      type: 'narration',
+      speaker:  null 
+    }))
+
+    const sceneDescriptions = {
+      imagePrompt: "",
+      segments: segmentsObject,
+      options: options
+    }
+    console.log("sceneDescriptions", sceneDescriptions)
+    return sceneDescriptions
   }
 
   // 在Home组件中添加一个新的函数来处理"开始冒险"按钮点击
@@ -581,7 +621,7 @@ function HomeContent() {
       return;
     }
 
-    setIsLoading(true);
+    // setIsLoading(true);
     setCurrentSegmentIndex(0); // Reset segment index
     
     try {
@@ -615,12 +655,24 @@ function HomeContent() {
       }
 
       const data = await response.json();
+      setSceneDescriptions(prevState => ({
+        ...prevState,
+        imagePrompt: data.imagePrompt || undefined
+      }));
       const imageUrl = await handleGenerateImage(data.imagePrompt);
-      setSceneDescriptions({
-        ...data,
-        imageUrl: imageUrl || undefined,
-        options: options || []
-      });
+      // setSceneDescriptions({
+      //   ...data,
+      //   imageUrl: imageUrl || undefined,
+      //   options: options || []
+      // });
+      if (imageUrl && data.imagePrompt) {
+        setSceneDescriptions(prevState => ({
+          ...prevState,
+          imageUrl: imageUrl || undefined,
+         
+        }));
+      }
+      
       
       setIsImmersiveMode(true);
     } catch (error) {
@@ -780,8 +832,8 @@ function HomeContent() {
                   {isLoading && (
                     <div className="absolute inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
                       <div className="flex flex-col items-center space-y-4">
-                        <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                        <p className="text-white text-lg animate-pulse">正在生成场景...</p>
+                        <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                       
                       </div>
                     </div>
                   )}
@@ -880,7 +932,7 @@ function HomeContent() {
                           {gameState?.task  && (
                             <div className="mb-4 p-4 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20">
                              
-                              <p className="text-gray-200">{gameState.task.description}</p>
+                              <p className="text-gray-200" dangerouslySetInnerHTML={{ __html: gameState.task.description }}></p>
                           
                             </div>
                           )}
@@ -898,7 +950,7 @@ function HomeContent() {
                                   {segment.speaker}
                                 </div>
                               )}
-                              <div>{segment.text}</div>
+                              <div dangerouslySetInnerHTML={{ __html: segment.text }}></div>
                             </div>
                           ))}
                           
@@ -907,7 +959,7 @@ function HomeContent() {
                             sceneDescriptions?.options && (
                               <div className="mt-6 space-y-2">
                                
-                                {sceneDescriptions?.options.map((option) => (
+                                {options.map((option) => (
                                   <Button
                                     key={option.id}
                                     variant="outline"
