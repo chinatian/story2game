@@ -34,6 +34,7 @@ import { SkillsDisplay } from "@/components/skills-display"
 import { generateImage } from '@/lib/imageGenerator';
 import { defaultSystemPrompt } from "@/lib/defaultSystemPrompt"
 import { useSearchParams } from 'next/navigation'
+import { StorySelector, type Story } from "@/components/story-selector"
 
 // 定义技能变化类型
 type SkillChange = {
@@ -59,9 +60,9 @@ function HomeContent() {
   const [options, setOptions] = useState<Array<{ id: string; text: string }>>([])
   const [scene, setScene] = useState<string | null>(null)
   const [streamingContent, setStreamingContent] = useState("")
-  const [showIntro, setShowIntro] = useState(true) // 默认显示介绍
+  const [showIntro, setShowIntro] = useState(false) // 改为 false，默认不显示介绍
   const [showTaskInfo, setShowTaskInfo] = useState(false) // 控制任务信息弹窗
-  const [hasShownIntro, setHasShownIntro] = useState(false) // 跟踪是否已经显示过介绍
+  const [hasShownIntro, setHasShownIntro] = useState(false)
   const [taskChanged, setTaskChanged] = useState(false)
   const [newTask, setNewTask] = useState<any>(null)
   const [previousSkills, setPreviousSkills] = useState<Record<string, number>>({}) // 存储上一次的技能值
@@ -111,6 +112,7 @@ function HomeContent() {
     const urlVolcKey = searchParams.get('volcKey')
     return urlVolcKey || ""
   })
+  const [showStorySelector, setShowStorySelector] = useState(true) // 添加此状态
 
   // 解析YAML中的故事信息
   const parseStoryInfo = (yamlText: string) => {
@@ -170,9 +172,6 @@ function HomeContent() {
 
     // Set initial skills as previous skills
     setPreviousSkills(info.initialSkills)
-
-    // Show intro
-    setShowIntro(true)
 
     // Initialize immersive mode content
     setSceneDescriptions({
@@ -423,6 +422,7 @@ function HomeContent() {
     // 重新显示介绍
     setShowIntro(true)
     setHasShownIntro(false)
+    setShowStorySelector(true) // 添加此行
   }
 
   // 格式化消息内容，处理特殊标记
@@ -674,8 +674,25 @@ function HomeContent() {
     if (urlVolcKey) setVolcSecretAccessKey(urlVolcKey)
   }, [searchParams])
 
+  // 添加处理选择故事的函数
+  const handleSelectStory = (story: Story) => {
+    setSystemPrompt(story.systemPrompt)
+    // 解析新的故事信息
+    const info = parseStoryInfo(story.systemPrompt)
+    setStoryInfo(info)
+    // 重置技能
+    setPreviousSkills(info.initialSkills)
+    setShowStorySelector(false)
+    setShowIntro(true) // 选择故事后显示故事介绍
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
+      {/* 在最上层添加故事选择器 */}
+      {showStorySelector && (
+        <StorySelector onSelectStory={handleSelectStory} />
+      )}
+      
       <header className="bg-white shadow-sm py-4">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -867,7 +884,7 @@ function HomeContent() {
                           
                             </div>
                           )}
-                          {sceneDescriptions.segments.slice(0, currentSegmentIndex).map((segment, index) => (
+                          {sceneDescriptions?.segments?.slice(0, currentSegmentIndex).map((segment, index) => (
                             <div 
                               key={index} 
                               className={`${
