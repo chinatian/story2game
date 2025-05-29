@@ -477,7 +477,14 @@ function HomeContent() {
       return segment
     }).flat() // Flatten the array since some segments may have been split into arrays
     // 按照 sceneDescriptions 的格式，将 segments 转换为对象
-    const segmentsObject = splitSegments.map((segment, index) => ({
+
+    // Filter out empty segments and single periods
+    const filteredSegments = splitSegments.filter(segment => {
+      const trimmed = segment.trim()
+      return trimmed.length > 0 && trimmed !== '。' && trimmed !== '”。'
+    })
+
+    const segmentsObject = filteredSegments.map((segment, index) => ({
       text: segment,
       type: 'narration',
       speaker:  null 
