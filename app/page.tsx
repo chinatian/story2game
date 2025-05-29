@@ -113,6 +113,7 @@ function HomeContent() {
     return urlVolcKey || ""
   })
   const [showStorySelector, setShowStorySelector] = useState(true) // 添加此状态
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
 
   // 解析YAML中的故事信息
   const parseStoryInfo = (yamlText: string) => {
@@ -589,7 +590,8 @@ function HomeContent() {
 
   const handleGenerateImage = async (prompt: string) => {
     try {
-      // Define proper type for image generation options
+      setIsGeneratingImage(true) // 开始生成图片
+      
       const options = {
         prompt,
         width: 768,
@@ -614,17 +616,17 @@ function HomeContent() {
         variant: "destructive",
       });
       return null;
+    } finally {
+      setIsGeneratingImage(false) // 生成完成
     }
   };
 
   const handleImmersiveMode = async () => {
-    // If already loading, return
     if (isLoading) return;
     
     console.log("Executing handleImmersiveMode");
     
     if (!messages.length) {
-      // Direct entry to immersive mode, show start button
       setIsImmersiveMode(true);
       setSceneDescriptions({
         imagePrompt: "A mysterious fantasy world waiting to be explored",
@@ -637,8 +639,7 @@ function HomeContent() {
       return;
     }
 
-    // setIsLoading(true);
-    setCurrentSegmentIndex(0); // Reset segment index
+    setCurrentSegmentIndex(0);
     
     try {
       const storyContent = messages
@@ -647,7 +648,6 @@ function HomeContent() {
         .map(m => formatMessage(m.content))
         .join("\n");
 
-      // Add previous imagePrompt to the story content if it exists
       const contentWithPrompt = sceneDescriptions?.imagePrompt 
         ? `Previous Image Prompt: ${sceneDescriptions.imagePrompt}\n\nStory Content: ${storyContent}`
         : storyContent;
@@ -675,20 +675,17 @@ function HomeContent() {
         ...prevState,
         imagePrompt: data.imagePrompt || undefined
       }));
+
+      // 生成图片
+      setIsGeneratingImage(true);
       const imageUrl = await handleGenerateImage(data.imagePrompt);
-      // setSceneDescriptions({
-      //   ...data,
-      //   imageUrl: imageUrl || undefined,
-      //   options: options || []
-      // });
+      
       if (imageUrl && data.imagePrompt) {
         setSceneDescriptions(prevState => ({
           ...prevState,
           imageUrl: imageUrl || undefined,
-         
         }));
       }
-      
       
       setIsImmersiveMode(true);
     } catch (error) {
@@ -698,8 +695,6 @@ function HomeContent() {
         variant: "destructive",
       });
       setIsImmersiveMode(false);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -845,11 +840,14 @@ function HomeContent() {
               <div className="fixed inset-0 z-50 bg-black">
                 <div className="relative w-full h-full">
                   {/* 加载状态显示 */}
-                  {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+                  {(isGeneratingImage) && (
+                    <div className="absolute top-0 left-0 w-full h-[2px] bg-purple-600 animate-pulse z-150" />
+                  )}
+                    {(isLoading) && (
+                    <div className="absolute inset-0 flex items-center justify-center z-150 bg-black bg-opacity-70">
                       <div className="flex flex-col items-center space-y-4">
                         <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                       
+                        
                       </div>
                     </div>
                   )}
