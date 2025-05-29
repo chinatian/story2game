@@ -467,8 +467,17 @@ function HomeContent() {
     
     // Split by newlines and filter out empty lines
     const segments = formattedContent.split('\n').filter(line => line.trim().length > 0)
+
+    // Split segments if they are too long
+    const splitSegments = segments.map(segment => {
+      if (segment.length > 40) {
+        // Split by Chinese period (。) and filter out empty strings
+        return segment.split('。').filter(s => s.trim().length > 0).map(s => s + '。')
+      }
+      return segment
+    }).flat() // Flatten the array since some segments may have been split into arrays
     // 按照 sceneDescriptions 的格式，将 segments 转换为对象
-    const segmentsObject = segments.map((segment, index) => ({
+    const segmentsObject = splitSegments.map((segment, index) => ({
       text: segment,
       type: 'narration',
       speaker:  null 
