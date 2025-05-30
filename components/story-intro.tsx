@@ -34,8 +34,8 @@ export function StoryIntro({
           </Button>
         </CardHeader>
 
-        <ScrollArea className="flex-1">
-          <CardContent className="space-y-6">
+        <div className="flex-1 overflow-scroll " style={{ height: 'calc(90vh - 200px)' }}>
+          <CardContent className="space-y-6 pr-6 h-full">
             <div>
               <h3 className="text-lg font-semibold mb-2 text-purple-600">世界背景</h3>
               <p className="text-gray-700 whitespace-pre-line">{worldBackground}</p>
@@ -51,7 +51,7 @@ export function StoryIntro({
               <p className="text-gray-700 whitespace-pre-line">{protagonist.description}</p>
             </div>
           </CardContent>
-        </ScrollArea>
+        </div>
 
         <CardFooter className="border-t pt-4 flex justify-between">
           <Button variant="outline" onClick={onCloseModal}>
