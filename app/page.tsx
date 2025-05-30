@@ -384,8 +384,12 @@ function HomeContent() {
 
       if (isImmersiveMode) {
         let _sceneDescriptions = formatMessageForImmersiveMode(completeResponse)
+        
         if (sceneDescriptions.imagePrompt) {
           _sceneDescriptions.imagePrompt = sceneDescriptions.imagePrompt
+        }
+        if(sceneDescriptions.imageUrl) {
+          _sceneDescriptions.imageUrl = sceneDescriptions.imageUrl
         }
         setSceneDescriptions(_sceneDescriptions);
         
@@ -843,14 +847,7 @@ function HomeContent() {
                   {(isGeneratingImage) && (
                     <div className="absolute top-0 left-0 w-full h-[2px] bg-purple-600 animate-pulse z-150" />
                   )}
-                    {(isLoading) && (
-                    <div className="absolute inset-0 flex items-center justify-center z-150 bg-black bg-opacity-70">
-                      <div className="flex flex-col items-center space-y-4">
-                        <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                        
-                      </div>
-                    </div>
-                  )}
+                    
 
                   {/* Background image container */}
                   <div 
@@ -860,11 +857,22 @@ function HomeContent() {
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       backgroundRepeat: 'no-repeat',
+                      filter: isGeneratingImage ? 'blur(8px)' : 'none',
+                      transition: 'filter 0.3s ease'
                     }}
                   >
                     {/* Dark overlay */}
                     {/* <div className="absolute inset-0 bg-black bg-opacity-50" /> */}
                   </div>
+
+                  {(isLoading) && (
+                    <div className="absolute inset-0 flex items-center justify-center z-250 bg-black bg-opacity-70">
+                      <div className="flex flex-col items-center space-y-4">
+                        <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                        
+                      </div>
+                    </div>
+                  )}
 
                   {/* Top navigation bar */}
                   <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
