@@ -845,7 +845,7 @@ function HomeContent() {
                 <div className="relative w-full h-full">
                   {/* 加载状态显示 */}
                   {(isGeneratingImage) && (
-                    <div className="absolute top-0 left-0 w-full h-[2px] bg-purple-600 animate-pulse z-150" />
+                    <div className="absolute top-0 left-0 w-full h-[4px] bg-purple-600 animate-pulse z-150" />
                   )}
                     
 
