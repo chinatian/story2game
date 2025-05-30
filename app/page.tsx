@@ -35,6 +35,10 @@ import { generateImage } from '@/lib/imageGenerator';
 import { defaultSystemPrompt } from "@/lib/defaultSystemPrompt"
 import { useSearchParams } from 'next/navigation'
 import { StorySelector, type Story } from "@/components/story-selector"
+import { useGameState } from '@/hooks/useGameState';
+import { useChat } from '@/hooks/useChat';
+import { ImmersiveMode } from '@/components/ImmersiveMode';
+import { StoryInfo } from '@/types';
 
 // 定义技能变化类型
 type SkillChange = {
@@ -68,16 +72,7 @@ function HomeContent() {
   const [previousSkills, setPreviousSkills] = useState<Record<string, number>>({}) // 存储上一次的技能值
   const [skillChanges, setSkillChanges] = useState<SkillChange[]>([]) // 存储技能变化
   const [showSkillChanges, setShowSkillChanges] = useState(false) // 控制是否显示技能变化高亮
-  const [storyInfo, setStoryInfo] = useState<{
-    title: string
-    worldBackground: string
-    introduction: string
-    protagonist: {
-      name: string
-      description: string
-    }
-    initialSkills: Record<string, number>
-  }>({
+  const [storyInfo, setStoryInfo] = useState<StoryInfo>({
     title: "",
     worldBackground: "",
     introduction: "",
@@ -114,6 +109,28 @@ function HomeContent() {
   })
   const [showStorySelector, setShowStorySelector] = useState(true) // 添加此状态
   const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+
+  const {
+    gameState: gameStateFromHook,
+    skillChanges: skillChangesFromHook,
+    showSkillChanges: showSkillChangesFromHook,
+    taskChanged: taskChangedFromHook,
+    newTask: newTaskFromHook,
+    handleSkillIncrease,
+    updateGameState
+  } = useGameState(storyInfo.initialSkills);
+
+  const {
+    messages: chatMessages,
+    isLoading: chatIsLoading,
+    streamingContent: chatStreamingContent,
+    options: chatOptions,
+    messagesEndRef: chatMessagesEndRef,
+    sendMessage,
+    setMessages: setChatMessages,
+    setOptions: setChatOptions,
+    setStreamingContent: setChatStreamingContent
+  } = useChat(apiKey, model, systemPrompt);
 
   // 解析YAML中的故事信息
   const parseStoryInfo = (yamlText: string) => {
@@ -280,142 +297,24 @@ function HomeContent() {
   }, [gameState])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!input.trim() || isLoading) return
-
-    // 标记已经开始对话，不再自动显示介绍
-    setHasShownIntro(true)
+    e.preventDefault();
+    if (!input.trim() || chatIsLoading) return;
 
     // 检查是否是选择选项
-    const optionMatch = input.match(/^(\d+)$/)
-    let userMessage = input
+    const optionMatch = input.match(/^(\d+)$/);
+    let userMessage = input;
 
-    if (optionMatch && options.length > 0) {
-      const optionId = optionMatch[1]
-      const selectedOption = options.find((opt) => opt.id === optionId)
+    if (optionMatch && chatOptions.length > 0) {
+      const optionId = optionMatch[1];
+      const selectedOption = chatOptions.find((opt) => opt.id === optionId);
       if (selectedOption) {
-        userMessage = `选择选项 ${optionId}: ${selectedOption.text}`
+        userMessage = `选择选项 ${optionId}: ${selectedOption.text}`;
       }
     }
 
-    if (!apiKey) {
-      toast({
-        title: "缺少API密钥",
-        description: "请在设置中输入OpenRouter API密钥",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // 添加用户消息
-    const newMessages = [...messages, { role: "user", content: userMessage }]
-
-    setMessages(newMessages)
-    setInput("")
-    setIsLoading(true)
-    setStreamingContent("")
-    setOptions([])
-
-    try {
-      // 使用流式API
-      const response = await fetch("/api/chat-stream", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: newMessages,
-          apiKey,
-          model,
-          systemPrompt,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`请求失败: ${response.status}`)
-      }
-
-      if (!response.body) {
-        throw new Error("响应没有返回数据流")
-      }
-
-      // 处理流式响应
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let completeResponse = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-
-        if (done) {
-          break
-        }
-
-        const chunk = decoder.decode(value, { stream: true })
-        completeResponse += chunk
-        setStreamingContent(completeResponse)
-
-        // 动态解析游戏状态和选项
-        const gameStateData = parseGameState(completeResponse)
-        console.log("gameStateData", gameStateData)
-        if (gameStateData) {
-          setGameState(gameStateData)
-        }
-
-        // 检查是否有场景描述
-        const sceneMatch = completeResponse.match(/#场景\s*(.*?)(?=\n|$)/)
-        if (sceneMatch) {
-          setScene(sceneMatch[1])
-        }
-      }
-
-      // 完成流式传输后，解析选项
-      const optionsData = parseOptions(completeResponse)
-      if (optionsData) {
-        setOptions(optionsData)
-      }
-
-      // 添加AI回复
-      setMessages([...newMessages, { role: "assistant", content: completeResponse }])
-      setStreamingContent("")
-      console.log("isImmersiveMode", isImmersiveMode)
-      console.log("messages", messages)
-
-      if (isImmersiveMode) {
-        let _sceneDescriptions = formatMessageForImmersiveMode(completeResponse)
-        
-        if (sceneDescriptions.imagePrompt) {
-          _sceneDescriptions.imagePrompt = sceneDescriptions.imagePrompt
-        }
-        if(sceneDescriptions.imageUrl) {
-          _sceneDescriptions.imageUrl = sceneDescriptions.imageUrl
-        }
-        setSceneDescriptions(_sceneDescriptions);
-        
-        // setSceneDescriptions()
-      }
-      // // 如果是沉浸模式，调用handleImmersiveMode
-      // if (isImmersiveMode) {
-      //   setTimeout(() => {
-      //     handleImmersiveMode()
-      //   }, 10)
-      // }
-    } catch (error) {
-      console.error("Error:", error)
-      alert(error instanceof Error ? error.message : "发送消息失败，请检查网络连接或API密钥")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // 另一种解决方案：使用 useEffect
-  useEffect(() => {
-    if (input.trim()) {
-      const event = { preventDefault: () => {} } as React.FormEvent
-      handleSubmit(event)
-    }
-  }, [input]) // 当 input 变化时触发
+    setInput("");
+    await sendMessage(userMessage);
+  };
 
   const handleOptionClick = (optionId: string, optionText: string) => {
     setInput(optionId)
@@ -539,57 +438,6 @@ function HomeContent() {
       title: "剧本设定已生成",
       description: "新的YAML数据已应用到系统提示词",
     })
-  }
-
-  const handleSkillIncrease = (skillName: string) => {
-    setGameState((prevState: any) => ({ 
-      ...prevState, 
-      skills: {
-        ...(prevState?.skills || {}),
-        [skillName]: (prevState?.skills?.[skillName] || 0) + 5
-      }
-    }));
-
-    // Create skill change record using the current gameState
-    const currentValue = gameState?.skills?.[skillName] || 0;
-    const skillChange: SkillChange = {
-      name: skillName,
-      oldValue: currentValue,
-      newValue: currentValue + 5,
-      change: 5
-    }
-
-    // Update messages with proper typing
-    setMessages(prevMessages => {
-      const newMessages = [...prevMessages];
-      for (let i = newMessages.length - 1; i >= 0; i--) {
-        if (newMessages[i].role === 'assistant') {
-          const content = newMessages[i].content;
-          const updatedContent = content.replace(
-            new RegExp(`${skillName}>\\d+</`),
-            `${skillName}>${currentValue + 5}</`
-          );
-          newMessages[i].content = updatedContent;
-          break;
-        }
-      }
-      return newMessages;
-    });
-
-    // 更新状态
-    setSkillChanges([skillChange])
-    setShowSkillChanges(true)
-
-    // 添加系统消息到聊天记录
-    // const systemMessage = {
-    //   role: 'system',
-    //   content: `技能 ${skillName} 增加了5点，从 ${prev?.skills?.[skillName] || 0} 提升到 ${prev?.skills?.[skillName] || 0 + 5}。`
-    // }
-
-    // 3秒后隐藏技能变化提示
-    setTimeout(() => {
-      setShowSkillChanges(false)
-    }, 3000)
   }
 
   const handleGenerateImage = async (prompt: string) => {
