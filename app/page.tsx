@@ -851,18 +851,22 @@ function HomeContent() {
 
                   {/* Background image container */}
                   <div 
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage: sceneDescriptions?.imageUrl ? `url(${sceneDescriptions.imageUrl})` : 'none',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat',
-                      filter: isGeneratingImage ? 'blur(8px)' : 'none',
-                      transition: 'filter 0.3s ease'
-                    }}
+                    className="absolute inset-0 flex justify-center"
                   >
-                    {/* Dark overlay */}
-                    {/* <div className="absolute inset-0 bg-black bg-opacity-50" /> */}
+                    <div 
+                      className="w-full max-w-[500px]"
+                      style={{
+                        backgroundImage: sceneDescriptions?.imageUrl ? `url(${sceneDescriptions.imageUrl})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                        filter: isGeneratingImage ? 'blur(8px)' : 'none',
+                        transition: 'filter 0.3s ease'
+                      }}
+                    >
+                      {/* Dark overlay */}
+                      {/* <div className="absolute inset-0 bg-black bg-opacity-50" /> */}
+                    </div>
                   </div>
 
                   {(isLoading) && (
@@ -924,7 +928,7 @@ function HomeContent() {
                       }
                     }}
                   >
-                    <div className="w-full max-w-2xl px-4">
+                    <div className="w-full max-w-[500px] mx-auto px-4">
                       {!messages.length ? (
                         // Show start button when no messages
                         <div className="flex flex-col items-center justify-center h-full space-y-6">
@@ -979,7 +983,7 @@ function HomeContent() {
                           {/* 选项或继续提示 */}
                           {currentSegmentIndex-1 >= (sceneDescriptions?.segments?.length || 0) ? (
                             sceneDescriptions?.options && (
-                              <div className="mt-6 space-y-2">
+                              <div className="mt-6 space-y-2 animate-fadeIn">
                                
                                 {options.map((option) => (
                                   <Button
@@ -1017,7 +1021,6 @@ function HomeContent() {
                           ) : (
                             <div className="text-center text-white mt-4 opacity-70">
                               点击继续...
-                             
                             </div>
                           )}
                         </div>
