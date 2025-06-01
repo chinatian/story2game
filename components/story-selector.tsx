@@ -987,7 +987,7 @@ const PRESET_STORIES: Story[] = [
     id: "阿宝的蝴蝶",
     title: "阿宝的蝴蝶",
     description: "这是一个人魔共存的世界，人类圣殿与魔族七十二柱魔神争斗不休。逆天魔龙族作为魔族最强大的血脉",
-    thumbnail: "/images/story_002.jpg",
+    
     systemPrompt: `
     interactiveNovel:
   storySettings:
