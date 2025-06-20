@@ -1,4 +1,4 @@
-import { GenerateImageResponse, ImageGenerationOptions, RequestInfo } from './types';
+import { GenerateImageResponse, RequestInfo } from './types';
 import { createVolcRequest } from './volcEngine';
 // Use native fetch API since we're in a browser environment
 
